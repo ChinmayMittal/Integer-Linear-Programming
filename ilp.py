@@ -1,8 +1,10 @@
 import sys
 import numpy as np
 
+EPSILON = 1e-10
+
 def print_matrix(matrix):
-    np.savetxt(sys.stdout, matrix, fmt='%.2f', delimiter=' ')
+    np.savetxt(sys.stdout, matrix, fmt='%.2f', delimiter='  ')
     
 def read_input(filename):
     with open(filename, "r") as f:
@@ -41,12 +43,67 @@ def simplex(tableau):
             if(row_idx != pivot_row_idx):
                 tableau[row_idx, : ] -= tableau[pivot_row_idx, :] * tableau[row_idx][pivot_column_idx]
         iterations += 1 
-        print(f"Table After {iterations} iterations")
+        print(f"Table After {iterations} iterations of Primal Tableau")
         print_matrix(tableau)
         optimal_found = not np.any(tableau[0, 1:] < 0 )
         
     return tableau
+      
+def dual_simplex_method(tableau):
+    
+    optimal_found = not np.any(tableau[1:, 0] < 0 ) ### is any primal basic variable < 0 
+    iterations = 0
+    while(not optimal_found):
+        print("-"*50)
+        pivot_row_idx = np.argmax(tableau[1:, 0] < 0) + 1
+        div_array = -1* tableau[0, 1:]/(tableau[pivot_row_idx, 1:]+EPSILON)
+        ##[TODO] rigrously check division by zero and other corner cases
+        pivot_column_idx = np.where(np.logical_and( div_array > 0, div_array==np.amin(div_array[div_array >0])))[0][0]+1
+        print(f"Pivot Idx ({pivot_row_idx}, {pivot_column_idx})")
+        tableau[pivot_row_idx, :] /= tableau[pivot_row_idx][pivot_column_idx]
+        for row_idx in range(tableau.shape[0]):
+            if(row_idx != pivot_row_idx):
+                tableau[row_idx, : ] -= tableau[pivot_row_idx, :] * tableau[row_idx][pivot_column_idx]        
+        iterations += 1 
+        print(f"Table After {iterations} iterations of Dual Simplex")
+        print_matrix(tableau)
+        optimal_found = not np.any(tableau[1:, 0] < 0 )
         
+    
+    
+    return tableau  
+def gomory_helper(tableau, n):
+    basic_variables = tableau[1:, 0]
+    is_integer = np.allclose(basic_variables, np.round(basic_variables))
+    while( not is_integer):
+        basic_variables = tableau[1:, 0]
+        ## find the constraint row which does not have an integer basic solution
+        constraint_idx = np.argmax(np.modf(basic_variables)[0] != 0 )+1 ### row number of constraint which will generate the new constraint
+        # print(constraint_idx)
+        new_row = (tableau[constraint_idx, :]) - np.floor(tableau[constraint_idx, :]) ## represents the new constraints row
+        tableau = np.vstack((tableau, -1*new_row)) ### add the new row
+        new_column = np.zeros((tableau.shape[0], 1))
+        new_column[-1] = 1
+        tableau = np.hstack((tableau, new_column))
+        print()
+        print_matrix(tableau)
+        
+        print("Dual Simplex Method")
+        tableau = dual_simplex_method(tableau)
+        
+        basic_variables = tableau[1:, 0]
+        is_integer = np.allclose(basic_variables, np.round(basic_variables))
+    
+    ### find solutions
+    solution = np.zeros(n)
+    for variable_idx in range(n):
+        ## check if variable is basic
+        column = tableau[1:, variable_idx+1]
+        if( np.max(column) == 1 and np.count_nonzero(column) == 1):
+            idx_of_one = np.argmax(column)+1
+            solution[variable_idx] = tableau[idx_of_one, 0]
+    return solution        
+    
 
 def gomory(filename):
     n, m, b, c, A = read_input(filename)
@@ -54,5 +111,7 @@ def gomory(filename):
     print("Initial Tableau")
     print_matrix(tableau)
     relaxed_lp_optimal_tableau = simplex(tableau)
-
-gomory("data2.txt")
+    solution =  gomory_helper(relaxed_lp_optimal_tableau, n)
+    print(solution)
+    
+gomory("data3.txt")
