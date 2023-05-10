@@ -30,12 +30,14 @@ def construct_tableau(n, m, b, c, A):
     return tableau       
              
 def simplex(tableau):
+    tableau = np.round(tableau, 7)
     optimal_found = not np.any(tableau[0, 1:] < 0.0 ) ### is any reduced cost < 0 
     iterations = 0
     while(not optimal_found):
         print("-"*50)
         pivot_column_idx = np.argmax(tableau[0, 1:] < 0.0) + 1
         div_array = tableau[1:, 0]/tableau[1:,pivot_column_idx]
+        div_array = np.round(div_array, 7)
         div_array[tableau[1:,pivot_column_idx]<0] = np.inf
         pivot_row_idx = np.where(np.logical_and(div_array>0, div_array==np.amin(div_array[div_array >=0])))[0][0]+1
         print(f"Pivot Idx: ({pivot_row_idx}, {pivot_column_idx})")
@@ -43,7 +45,8 @@ def simplex(tableau):
         for row_idx in range(tableau.shape[0]):
             if(row_idx != pivot_row_idx):
                 tableau[row_idx, : ] -= tableau[pivot_row_idx, :] * tableau[row_idx][pivot_column_idx]
-        iterations += 1 
+        iterations += 1
+        tableau = np.round(tableau, 7)
         print(f"Table After {iterations} iterations of Primal Tableau")
         print_matrix(tableau)
         optimal_found = not np.any(tableau[0, 1:] < 0.0 )
@@ -51,7 +54,7 @@ def simplex(tableau):
     return tableau
       
 def dual_simplex_method(tableau):
-    
+    tableau = np.round(tableau, 7)
     optimal_found = not np.any(tableau[1:, 0] < 0.0 ) ### is any primal basic variable < 0 
     iterations = 0
     while(not optimal_found):
@@ -62,9 +65,9 @@ def dual_simplex_method(tableau):
         print("REACHED HERE 2")
         div_array = -1* tableau[0, 1:]/(tableau[pivot_row_idx, 1:]+EPSILON)
         print("REACHED HERE 3")
-        # div_array = np.round(div_array, 7)
-        print(tableau[0, 1:]/(tableau[pivot_row_idx, 1:]+EPSILON))
-        print(div_array)
+        div_array = np.round(div_array, 7)
+        # print(tableau[0, 1:]/(tableau[pivot_row_idx, 1:]+EPSILON))
+        # print(div_array)
         ##[TODO] rigrously check division by zero and other corner cases
 
         pivot_column_idx = np.where(np.logical_and( div_array >0, div_array==np.amin(div_array[div_array >0])))[0][0]+1
@@ -75,7 +78,8 @@ def dual_simplex_method(tableau):
         for row_idx in range(tableau.shape[0]):
             if(row_idx != pivot_row_idx):
                 tableau[row_idx, : ] -= tableau[pivot_row_idx, :] * tableau[row_idx][pivot_column_idx]        
-        iterations += 1 
+        iterations += 1
+        tableau = np.round(tableau, 7)
         print(f"Table After {iterations} iterations of Dual Simplex")
         print_matrix(tableau)
         optimal_found = not np.any(tableau[1:, 0] < 0.0 )
@@ -84,7 +88,10 @@ def dual_simplex_method(tableau):
     
     return tableau  
 def gomory_helper(tableau, n):
+
+    tableau = np.round(tableau, 7)
     basic_variables = tableau[1:, 0]
+    
     is_integer = np.allclose(basic_variables, np.round(basic_variables))
     while( not is_integer):
         basic_variables = tableau[1:, 0]
@@ -124,6 +131,7 @@ def gomory(filename):
     print_matrix(tableau)
     relaxed_lp_optimal_tableau = simplex(tableau)
     solution =  gomory_helper(relaxed_lp_optimal_tableau, n)
+    solution = solution.astype(int)
     print(solution)
     
-gomory("data3.txt")
+gomory("data5.txt")
