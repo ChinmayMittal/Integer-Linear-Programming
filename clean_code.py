@@ -75,7 +75,6 @@ def first_tableau(tableau, base_indices, n, m, c):
         
         if pivot_column_idx == -1:
             # remove the lth row
-            print(f"Basis:{base_indices}")
             print_matrix(tableau)
             print(f"Found redundant constraint")
             tableau = np.delete(tableau, (pivot_row_idx), axis=0)
@@ -85,18 +84,12 @@ def first_tableau(tableau, base_indices, n, m, c):
             
         else:
             # remove the pivot row and add the pivot column
-            print(f"Constraint:{(pivot_row_idx, pivot_column_idx)}")
-            print(f"Base indices:{base_indices}")
-            print(f"Tableau:")
-            print_matrix(tableau)
 
             base_indices[pivot_row_idx-1] = pivot_column_idx            
             tableau[pivot_row_idx, :] /= tableau[pivot_row_idx][pivot_column_idx]
             for row_idx in range(tableau.shape[0]):
                 if(row_idx != pivot_row_idx):
                     tableau[row_idx, : ] -= tableau[pivot_row_idx, :] * tableau[row_idx][pivot_column_idx]
-            print()
-            print_matrix(tableau)                    
             
 
 
@@ -159,23 +152,15 @@ def dual_simplex_method(tableau, base_indices):
     iterations = 0
     while(not optimal_found):
         print("-"*50)
-        print("REACHED HERE 1")
         pivot_row_idx = np.argmax(np.round(tableau[1:, 0], 7) < 0.0) + 1
-        print(pivot_row_idx)
-        print("REACHED HERE 2")
         div_array = -1* np.round(tableau[0, 1:], 7)/(np.round(tableau[pivot_row_idx, 1:], 7)+EPSILON)
-        print("REACHED HERE 3")
-        print(tableau[0, 1:]/(tableau[pivot_row_idx, 1:]+EPSILON))
         div_array[np.round(tableau[pivot_row_idx, 1:], 7)>=0] = np.inf
         div_array += EPSILON
 
         ##[TODO] rigrously check division by zero and other corner cases
-        print(div_array)
         pivot_column_idx = np.where(np.logical_and( np.round(div_array, 7) >=0, div_array==np.amin(div_array[np.round(div_array, 7) >=0])))[0][0]+1
-        print("REACHED HERE 4")                
         print(f"Pivot Idx ({pivot_row_idx}, {pivot_column_idx})")
         base_indices[pivot_row_idx-1] = pivot_column_idx        
-        print("REACHED HERE 5")                
         tableau[pivot_row_idx, :] /= tableau[pivot_row_idx][pivot_column_idx]
         for row_idx in range(tableau.shape[0]):
             if(row_idx != pivot_row_idx):
@@ -190,7 +175,6 @@ def dual_simplex_method(tableau, base_indices):
     
     return tableau, base_indices
 def gomory_helper(tableau, n, base_indices):
-    print(tableau)
     basic_variables = tableau[1:, 0]
     
     is_integer = np.allclose(basic_variables, np.round(basic_variables))
@@ -198,15 +182,12 @@ def gomory_helper(tableau, n, base_indices):
         basic_variables = tableau[1:, 0]
         ## find the constraint row which does not have an integer basic solution
         constraint_idx = np.argmax(np.modf(np.round(basic_variables, 7))[0] != 0 )+1 ### row number of constraint which will generate the new constraint
-        print(f"constraint_idx:{np.round(np.modf(basic_variables)[0], 7) != 0}")
         new_row = (tableau[constraint_idx, :]) - np.floor(np.round(tableau[constraint_idx, :], 7)) ## represents the new constraints row
         tableau = np.vstack((tableau, -1*new_row)) ### add the new row
         new_column = np.zeros((tableau.shape[0], 1))
         new_column[-1] = 1
         base_indices = np.hstack((base_indices, np.array([len(tableau[0])])))
         tableau = np.hstack((tableau, new_column))
-        print()
-        print_matrix(tableau)
 
         print("Dual Simplex Method")
         tableau, base_indices = dual_simplex_method(tableau, base_indices)
@@ -222,7 +203,6 @@ def gomory_helper(tableau, n, base_indices):
             column = tableau[1:, variable_idx+1]
             idx_of_one = np.argmax(column)+1
             solution[variable_idx] = tableau[idx_of_one, 0]
-    print_matrix(tableau)            
     return solution        
     
 
@@ -234,7 +214,6 @@ def gomory(filename):
     # Ist phase
     print("Getting the tableau for first phase of dual phase simplex")
     tableau, base_indices = construct_tableau_2(n, m, b, c, A)
-    print_matrix(tableau)
     # apply simplex on the current tableau
     print("Applying simplex on the large tableau, to get the corresponding tableau for second phase")
     print_matrix(tableau)
@@ -248,9 +227,7 @@ def gomory(filename):
 
         # 2nd phase of simplex
         print("Applying simplex")
-        print_matrix(tableau)
         relaxed_lp_optimal_tableau, base_indices = simplex(tableau, base_indices)
-        print_matrix(relaxed_lp_optimal_tableau)
         # applying gomory cut method on the optimal primal for rlp
         print("Applying gomory cut")
         solution =  gomory_helper(relaxed_lp_optimal_tableau, n, base_indices)
@@ -269,4 +246,4 @@ def gomory(filename):
     
 
 if __name__ == '__main__':    
-    gomory('data.txt')
+    gomory('data12.txt')
